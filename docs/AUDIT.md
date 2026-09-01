@@ -141,6 +141,27 @@ seed (0.361) exceed it.
   shows training variance is of comparable magnitude and would widen honest
   intervals further.
 
+## J. Architecture refinement study — protocol integrity (added post-freeze)
+
+The refinement study (`src/tune_architecture.py`) ran after this audit under
+a pre-registered protocol. Integrity record:
+- Test data was never loaded during the sweep; the winner (V3, section-type
+  embeddings) was frozen on validation evidence and evaluated on test exactly
+  once (`experiments/tuning/final_V3_item_embedding_test.json`).
+- An operational incident: the sweep was accidentally launched twice in
+  parallel with identical seeds, double-writing V0–V8 artifacts. Resolution:
+  deterministic re-runs of V0 and V3 (2 seeds each,
+  `experiments/tuning/verify_artifacts.py`) reproduced stored validation
+  PR-AUCs to 6 decimal places, validating the artifacts. V9/V10 ran
+  single-process after the interruption.
+- The adoption rule was applied exactly as registered, including rejection of
+  the higher-scoring combination variant V10 (0.7806) because it failed the
+  rule against its parent V3 (needed ≥ 0.7914).
+- The original frozen results in results.json/results.md are unchanged; V3's
+  test result (PR-AUC 0.3592) is reported separately with the explicit caveat
+  that its improvement over the frozen models (+0.020/+0.028) is inside the
+  §I bootstrap noise. No statistical-superiority claim is made.
+
 ## Findings fixed as a result of this audit
 1. `results.md` mislabeled the sklearn MLP baseline as "(financial, 1 yr)";
    it uses flattened 3-year features. Label corrected; numbers unchanged.

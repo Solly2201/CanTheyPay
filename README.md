@@ -155,6 +155,32 @@ with only 27 validation positives, so multi-seed reporting is mandatory here).
 5. XGBoost gain importance concentrates on most-recent-year features
    (`t_mv_tl`, `t_leverage`, `t_ebit_ta`), independently corroborating (4).
 
+### Architecture refinement study (post-audit, pre-registered)
+
+After the main suite was audited and frozen, a pre-registered refinement study
+(`src/tune_architecture.py`, full protocol in its docstring) evaluated 10
+variants of the cross-modal model — text/section-selection axes and
+cross-attention-design axes — using **validation PR-AUC only** (5 seeds each;
+the test set was never loaded during the sweep). Adoption rule, fixed before
+any run: ensemble val PR-AUC ≥ base + 0.02 AND per-seed mean above base.
+
+**Winner: section-type embeddings (V3)** — each text chunk carries a learned
+embedding identifying its 10-K section (Item 1 vs Item 7). It passed the rule
+decisively (val 0.771 vs base 0.733) and dominated all passing variants; the
+pre-registered combination step (V3 × bidirectional attention) failed against
+V3 and was rejected. The sweep also produced a finding: Item 1 (Business)
+text alone *outperformed* the base while Item 7 (MD&A) alone underperformed —
+the sections carry different signal, which is exactly what the section
+embedding exploits.
+
+The frozen winner was evaluated on test **exactly once**: PR-AUC **0.3592**
+(ROC-AUC 0.910), vs 0.3395 for the original cross-modal model and 0.3313 for
+XGBoost+FinBERT. These deltas are inside the bootstrap noise from
+`docs/AUDIT.md` §I, so the headline conclusion is unchanged (competitive, not
+statistically superior). Full tables, integrity notes, and the freeze-time
+rationale: [`experiments/tuning/RESULTS.md`](experiments/tuning/RESULTS.md).
+Reproduce with `python -m src.tune_architecture sweep|decide|finalize`.
+
 **Explainability outputs** (`python -m src.explain`): permutation importance for
 the cross-modal model (top signals: log market value, leverage, log total
 assets, ROA — classic Altman lineage), XGBoost gain importance, and per-company

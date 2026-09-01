@@ -9,3 +9,6 @@ data/cache/
 !experiments/**
 .streamlit/
 experiments/embed_*.txt
+experiments/tuning/*.pt
+!experiments/tuning/V3_item_embedding_seed*.pt
+experiments/tuning/sweep_*.txt

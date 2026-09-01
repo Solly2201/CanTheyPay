@@ -1,5 +1,13 @@
 # Final Research Review & Defense Guide
 
+> **Addendum:** after this guide was written, a pre-registered architecture
+> refinement study selected a variant with section-type embeddings (V3) on
+> validation evidence and evaluated it on test once: PR-AUC 0.3592 vs the
+> 0.340/0.331 figures below. The improvement is inside the §I bootstrap
+> noise, so every claim-strength statement in this guide stands unchanged;
+> see `experiments/tuning/RESULTS.md`. When presenting, cite 0.359 as "the
+> refined model" and keep the original audited table as the main suite.
+
 Written after implementation freeze and statistical audit. Nothing in this
 document changes any model, dataset, split, or reported number. Its purpose is
 to fix the *claims* at exactly the strength the evidence supports.

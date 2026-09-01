@@ -1,0 +1,43 @@
+{
+  "val": {
+    "roc_auc": 0.9105,
+    "pr_auc": 0.7714,
+    "precision": 0.7308,
+    "recall": 0.7037,
+    "f1": 0.717,
+    "accuracy": 0.9356,
+    "threshold": 0.7153,
+    "confusion_matrix": {
+      "tn": 199,
+      "fp": 7,
+      "fn": 8,
+      "tp": 19
+    },
+    "n": 233,
+    "positives": 27
+  },
+  "test": {
+    "roc_auc": 0.91,
+    "pr_auc": 0.3592,
+    "precision": 0.2609,
+    "recall": 0.5,
+    "f1": 0.3429,
+    "accuracy": 0.951,
+    "threshold": 0.7153,
+    "confusion_matrix": {
+      "tn": 2641,
+      "fp": 102,
+      "fn": 36,
+      "tp": 36
+    },
+    "n": 2815,
+    "positives": 72
+  },
+  "per_seed_test_pr_auc": [
+    0.24149071159184313,
+    0.30804329003823705,
+    0.38094510233155765,
+    0.27380782748386545,
+    0.34404122088576905
+  ]
+}

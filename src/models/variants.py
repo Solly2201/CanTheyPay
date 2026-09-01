@@ -181,4 +181,8 @@ CANDIDATES = [
     VariantConfig("V8_heads8", n_heads=8, notes="more attention heads"),
     VariantConfig("V9_2layers", n_cross_layers=2,
                   notes="stacked cross-attention"),
+    # trained only because best text-side (V3) and best attention-side (V6)
+    # variants both passed the adoption rule; see tune_architecture protocol
+    VariantConfig("V10_combo_itememb_bi", item_embedding=True, direction="bi",
+                  notes="combination: best text-side (V3) x best attention-side (V6)"),
 ]
