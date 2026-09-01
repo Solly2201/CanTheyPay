@@ -1,0 +1,22 @@
+# Project-local Streamlit settings for the CanTheyPay demo.
+
+[server]
+# Disable the development source-file watcher (auto-rerun on save).
+#
+# Why: on every script run the watcher walks all of sys.modules and reads each
+# module's __file__/__path__. Transformers exposes its model modules lazily, so
+# touching transformers.models.*.image_processing_*_fast triggers an import of
+# torchvision, which this project does not install. Each one raises
+# ModuleNotFoundError: No module named 'torchvision' and the watcher logs it
+# with a full traceback - ~100 tracebacks per run, flooding the demo terminal.
+#
+# torchvision is genuinely not required: the only transformers model used is
+# FinBERT (yiyanghkust/finbert-pretrain), a text-only BERT. The tracebacks come
+# from module inspection, never from inference, so installing torchvision would
+# only paper over noise the app never causes.
+#
+# Cost of this setting: editing a source file no longer auto-reruns the app;
+# press "R" / restart to pick up edits. Nothing else changes - the app runs
+# normally and real application and model exceptions are still raised and
+# logged as usual.
+fileWatcherType = "none"

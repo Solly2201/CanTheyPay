@@ -28,11 +28,62 @@ mode = st.sidebar.radio("Input mode", [
     "Real company (SEC EDGAR)", "Dataset company", "Manual input"])
 
 
-def show_prediction(result, context_notes=None):
+def format_probability(prob: float) -> str:
+    """Percentage with four decimals, e.g. 0.4432% (the demo routinely sits in
+    the sub-1% range, where one decimal collapses everything to 0.0%)."""
+    return f"{prob * 100:.4f}%"
+
+
+def show_diagnostics(ratios, chunk_attention=None, text_chunks=None):
+    """Compact, deterministic diagnostics for the prediction just shown.
+
+    Uses only what inference already produced: the engineered ratio features
+    for the supplied years and the model's cross-attention weights. No
+    attribution method, no extra dependency, no retraining.
+    """
+    from src.diagnostics import (NO_TEXT_NOTE, NOT_CAUSAL_NOTE, level_flags,
+                                 ratio_signals, ratio_table, text_signals)
+
+    with st.expander("Model diagnostics (not causal explanations)", expanded=True):
+        st.caption(NOT_CAUSAL_NOTE)
+
+        st.markdown("**Largest ratio moves, t-2 → t**")
+        for s in ratio_signals(ratios):
+            arrow = "🔻" if s["adverse"] else "🔺"
+            path = " → ".join(f"{v:,.2f}" for v in s["values"])
+            st.write(f"{arrow} **{s['label']}**: {path}  ·  {s['direction']}")
+
+        flags = level_flags(ratios)
+        st.markdown("**Level screens at year t**")
+        if flags:
+            for f in flags:
+                st.write(f"- {f}")
+        else:
+            st.write("- None of the standard distress screens are tripped.")
+
+        tab = ratio_table(ratios)
+        st.caption("Curated ratios across the supplied years:")
+        st.dataframe(pd.DataFrame(tab["data"], index=tab["index"],
+                                  columns=tab["columns"]).style.format("{:,.3f}"))
+
+        st.markdown("**Text the model attended to most**")
+        signals = text_signals(text_chunks or [], chunk_attention)
+        if signals:
+            for t in signals:
+                st.write(f"- `attn={t['weight']:.3f}` {t['snippet']}…")
+            st.caption(
+                "Cross-attention weight from the financial year-tokens to each "
+                "text chunk. High weight means the model routed capacity there; "
+                "it is **not** evidence that the sentence caused the prediction.")
+        else:
+            st.info(NO_TEXT_NOTE)
+
+
+def show_prediction(result, context_notes=None, text_chunks=None):
     prob, cat = result["probability"], result["category"]
     color = {"Low risk": "green", "Elevated risk": "orange",
              "High risk": "red"}[cat]
-    st.metric("1-year bankruptcy/distress probability", f"{prob:.1%}")
+    st.metric("1-year bankruptcy/distress probability", format_probability(prob))
     st.markdown(f"**Risk category:** :{color}[{cat}] "
                 f"(decision threshold from validation: {result['threshold']:.2f})")
     if result["used_text_chunks"]:
@@ -44,6 +95,8 @@ def show_prediction(result, context_notes=None):
                 "(the model handles this with a learned no-text token).")
     for note in (context_notes or []):
         st.warning(note)
+    show_diagnostics(result["ratios"], result.get("chunk_attention"),
+                     text_chunks)
 
 
 @st.cache_data(show_spinner="Fetching from SEC EDGAR ...")
@@ -63,6 +116,15 @@ def edgar_fetch(ticker):
                          "data for a valid prediction."}
     text = fetch_10k_text(cik)
     return {"cik": cik, "name": name, "fin": fin, "text": text}
+
+
+@st.cache_data(show_spinner=False)
+def dataset_chunk_texts(cik, split="test"):
+    """Chunk texts for one dataset company, in the same order the embeddings
+    were stacked in (src.dataset.load_split sorts by cik, item, chunk_idx)."""
+    df = pd.read_parquet(PROCESSED_DIR / f"text_{split}.parquet")
+    df = df[df["cik"].astype(str) == str(cik)].sort_values(["item", "chunk_idx"])
+    return [f"[{r.item}] {r.text}" for r in df.itertuples()]
 
 
 if mode == "Real company (SEC EDGAR)":
@@ -94,7 +156,7 @@ if mode == "Real company (SEC EDGAR)":
                 from src.inference import predict_company
                 with st.spinner("Running FinBERT + cross-modal model ..."):
                     result = predict_company(fin["items"], chunks)
-                show_prediction(result, notes)
+                show_prediction(result, notes, text_chunks=chunks)
 
 elif mode == "Dataset company":
     st.subheader("Browse the held-out test split (anonymized companies)")
@@ -122,23 +184,60 @@ elif mode == "Dataset company":
             prob = float(torch.sigmoid(
                 model(f.unsqueeze(0), t.unsqueeze(0), m.unsqueeze(0))).item())
         thr = tuned_threshold()
-        st.metric("Predicted probability", f"{prob:.1%}")
+        k = int(m.sum())
+        attn = model.last_attn
+        chunk_attention = (attn[0].mean(dim=0)[1:1 + k].tolist()
+                           if attn is not None and k else [])
+        st.metric("Predicted probability", format_probability(prob))
         st.write(f"Actual outcome: **{'bankrupt' if y else 'healthy'}** | "
-                 f"threshold {thr:.2f} | text chunks: {int(m.sum())}")
+                 f"threshold {thr:.2f} | text chunks: {k}")
+        show_diagnostics(raw, chunk_attention,
+                         dataset_chunk_texts(str(ciks[i])) if k else [])
 
 else:
     st.subheader("Manual input (18 accounting items, $ millions)")
     st.caption("Enter three fiscal years, oldest first. For non-US-GAAP "
                "companies (Indian filers etc.) results are out-of-distribution "
                "and not valid - shown for demonstration only.")
+
+    MANUAL_STORE = "manual_items"
+    MANUAL_STEP = 1.0          # $1M per +/- click; 0.01 was invisible at %.1f
+
+    def manual_key(item, j):
+        """Stable, unique widget key per (accounting item, year): 18 x 3 = 54."""
+        return f"manual__{item}__y{j}"
+
+    ALL_MANUAL_KEYS = [manual_key(it, j) for j in range(3) for it in RAW_ITEMS]
+    if MANUAL_STORE not in st.session_state:
+        st.session_state[MANUAL_STORE] = {k: 0.0 for k in ALL_MANUAL_KEYS}
+    store = st.session_state[MANUAL_STORE]
+
+    def sync_manual(k):
+        """Mirror a widget's value into a plain (non-widget) session-state dict.
+
+        Streamlit drops widget state for widgets that were not rendered in a
+        run, so the 54 inputs would otherwise reset to 0 whenever the sidebar
+        mode is switched away and back. The mirror is not a widget key, so it
+        survives, and it is what seeds `value=` on the next render.
+        """
+        store[k] = float(st.session_state[k])
+
     years = []
     cols = st.columns(3)
     for j, col in enumerate(cols):
         with col:
             st.markdown(f"**Year t-{2-j}**")
-            years.append({item: st.number_input(
-                item.replace("_", " "), value=0.0, key=f"{item}_{j}",
-                format="%.1f") for item in RAW_ITEMS})
+            entries = {}
+            for item in RAW_ITEMS:
+                k = manual_key(item, j)
+                entries[item] = st.number_input(
+                    item.replace("_", " "), key=k,
+                    value=float(store.get(k, 0.0)),
+                    step=MANUAL_STEP, format="%.1f",
+                    on_change=sync_manual, args=(k,))
+                store[k] = float(entries[item])
+            years.append(entries)
+
     text = st.text_area("Optional: paste annual-report text (MD&A / business "
                         "description)", height=150)
     if st.button("Predict", key="manual"):
@@ -151,4 +250,5 @@ else:
             with st.spinner("Running model ..."):
                 result = predict_company(years, chunks)
             show_prediction(result, [
-                "Manual input is unvalidated; garbage in, garbage out."])
+                "Manual input is unvalidated; garbage in, garbage out."],
+                text_chunks=chunks)

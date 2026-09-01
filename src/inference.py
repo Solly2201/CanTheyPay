@@ -56,8 +56,8 @@ def embed_chunks(chunks: list[str]) -> np.ndarray:
 def predict_company(years_items: list[dict], text_chunks: list[str] | None = None):
     """years_items: 3 dicts (oldest first) of the 18 raw items in $M."""
     sc = _scaler()
-    feats = sequence_features(years_items)                       # [3, F]
-    feats = np.clip(feats, sc["lo"], sc["hi"])
+    raw_feats = sequence_features(years_items)                   # [3, F], un-scaled
+    feats = np.clip(raw_feats, sc["lo"], sc["hi"])
     feats = ((feats - sc["mean"]) / sc["std"]).astype(np.float32)
 
     emb = embed_chunks(text_chunks or [])
@@ -83,5 +83,8 @@ def predict_company(years_items: list[dict], text_chunks: list[str] | None = Non
         category = "Low risk"
     return {"probability": prob, "threshold": thr, "category": category,
             "used_text_chunks": int(k),
+            # engineered ratios exactly as fed to the scaler, for demo
+            # diagnostics; not used by the model itself
+            "ratios": raw_feats.tolist(),
             "chunk_attention": (attn.mean(axis=0)[1:1 + k].tolist()
                                 if attn is not None and k else [])}

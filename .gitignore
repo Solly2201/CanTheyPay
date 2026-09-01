@@ -7,7 +7,7 @@ data/processed/*.parquet
 data/cache/
 *.pt
 !experiments/**
-.streamlit/
+.streamlit/secrets.toml
 experiments/embed_*.txt
 experiments/tuning/*.pt
 !experiments/tuning/V3_item_embedding_seed*.pt
