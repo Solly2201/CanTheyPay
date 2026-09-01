@@ -94,6 +94,53 @@ benchmarks, with this caveat attached.
 - Restated-financials risk remains unauditable (anonymized source) — see
   `DATA_STRATEGY.md` §13.
 
+## I. Uncertainty of the headline PR-AUC comparisons (audit_uncertainty.py)
+
+Paired bootstrap over the 2,815 test companies (B=10,000, fixed RNG; same
+replicate indices for all models, so differences account for the shared test
+sample). No retraining: XGBoost predictions reconstructed by verified
+deterministic refit; the cross-modal single-year model is the saved
+best-validation-seed checkpoint (test PR-AUC 0.3606). The 5-seed ensemble's
+member predictions were not saved, so the ensemble (0.3395) itself cannot be
+bootstrapped; note the checkpoint is the *best* of the 5 seeds, so its
+differences vs XGBoost are, if anything, optimistic.
+
+Per-model 95% bootstrap CIs:
+
+| Model | test PR-AUC | 95% CI |
+|---|---|---|
+| Cross-modal 1-yr (saved checkpoint) | 0.361 | [0.252, 0.490] |
+| XGBoost financial + FinBERT | 0.331 | [0.229, 0.446] |
+| XGBoost financial | 0.258 | [0.170, 0.367] |
+
+Paired differences:
+
+| Comparison | mean Δ | 95% CI | two-sided p |
+|---|---|---|---|
+| Cross-modal − XGB+FinBERT | +0.033 | [−0.067, +0.135] | ≈0.52 |
+| Cross-modal − XGB financial | +0.104 | [−0.004, +0.218] | ≈0.06 |
+| XGB+FinBERT − XGB financial | +0.071 | [−0.008, +0.149] | ≈0.08 |
+
+Seed-level variation (already in results.json): cross-modal 1-yr single-seed
+PR-AUC is 0.272 ± 0.055 across 5 seeds — the single-seed *mean* is below
+XGBoost+FinBERT (0.331); only the probability ensemble (0.340) and the best
+seed (0.361) exceed it.
+
+**Conclusions (stated at the strength the analysis supports):**
+- The cross-modal model's advantage over XGBoost+FinBERT is **not
+  statistically significant** (CI spans zero comfortably; and this bootstrap
+  already favors the neural side by using its best seed). The honest claim is
+  "competitive with the strongest classical baseline", not "beats".
+- Cross-modal vs financial-only XGBoost (+0.104) and text's contribution
+  within XGBoost (+0.071) are both **suggestive but not conclusive at
+  α=0.05** (p≈0.06–0.08) — with only 72 test positives, the test simply lacks
+  power. The direction is consistent across every model pair and every seed,
+  which is evidence of a real effect, but the data cannot certify it at
+  conventional significance.
+- The paired bootstrap captures test-sampling variance only; the 5-seed spread
+  shows training variance is of comparable magnitude and would widen honest
+  intervals further.
+
 ## Findings fixed as a result of this audit
 1. `results.md` mislabeled the sklearn MLP baseline as "(financial, 1 yr)";
    it uses flattened 3-year features. Label corrected; numbers unchanged.

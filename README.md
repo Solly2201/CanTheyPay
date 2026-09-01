@@ -120,10 +120,16 @@ with only 27 validation positives, so multi-seed reporting is mandatory here).
    complement ratios, they don't replace them.
 2. **Cross-attention beats concatenation** at equal capacity (D 0.267 vs
    C 0.247), supporting the core hypothesis of the project.
-3. **The proposed cross-modal model is the only one to edge out the strongest
-   classical baseline** (XGBoost + FinBERT embeddings), and only in its
-   single-year configuration (0.340 vs 0.331) — an honest, narrow win, not a
-   blowout. The gap to XGBoost-financial-only (0.258) is more decisive.
+3. **The proposed cross-modal model is competitive with — but not
+   demonstrably better than — the strongest classical baseline.** The
+   single-year ensemble edges XGBoost+FinBERT numerically (0.340 vs 0.331),
+   but a paired bootstrap over the test set (`docs/AUDIT.md` §I) puts the
+   difference well inside noise (Δ 95% CI [−0.067, +0.135], p≈0.52, computed
+   with the neural side's best seed). Even the larger gap to
+   XGBoost-financial-only (+0.104) only reaches p≈0.06 — with 72 test
+   positives the comparison is underpowered, and we say so rather than claim
+   significance. Single-seed cross-modal runs average 0.272±0.055; the
+   ensemble is what makes it competitive.
 4. **Surprise: 1-year input beats 3-year history** (financial 0.295 vs 0.234;
    cross-modal 0.340 vs 0.267). The most recent fiscal year dominates; older
    years appear to add noise under this event-label design — consistent with
