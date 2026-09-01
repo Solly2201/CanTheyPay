@@ -187,6 +187,18 @@ def preprocess_text(raw: str, chunk_words: int = 256, max_chunks: int = 8):
     return [c for c in chunks if len(c.split()) >= 20][:max_chunks]
 
 
+def _markup_parser(markup: str) -> str:
+    """Pick the parser matching an EDGAR primary document's actual format.
+
+    Filings from ~2019 on are Inline XBRL: genuine XHTML carrying an
+    `<?xml ...?>` declaration (though EDGAR still serves them as text/html).
+    Older filings are plain HTML. Handing XHTML to an HTML parser is what
+    raises bs4's XMLParsedAsHTMLWarning, so branch on the declaration instead
+    of assuming one format for every filing.
+    """
+    return "lxml-xml" if markup.lstrip()[:5].lower() == "<?xml" else "lxml"
+
+
 def fetch_10k_text(cik: int) -> dict:
     """Best-effort: latest 10-K primary document -> Item 1 and Item 7 text."""
     sub = _get(f"https://data.sec.gov/submissions/CIK{cik:010d}.json").json()
@@ -199,7 +211,7 @@ def fetch_10k_text(cik: int) -> dict:
     url = f"https://www.sec.gov/Archives/edgar/data/{cik}/{acc}/{doc}"
     html = _get(url).text
     from bs4 import BeautifulSoup
-    soup = BeautifulSoup(html, "lxml")
+    soup = BeautifulSoup(html, _markup_parser(html))
     text = soup.get_text(" ")
     text = re.sub(r"\s+", " ", text)
 

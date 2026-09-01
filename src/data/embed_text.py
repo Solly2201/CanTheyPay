@@ -20,9 +20,18 @@ from src.config import EMB_DIM, FINBERT_MODEL, PROCESSED_DIR, SPLITS
 
 
 def load_model(device):
-    from transformers import AutoModel, AutoTokenizer
-    tok = AutoTokenizer.from_pretrained(FINBERT_MODEL)
-    model = AutoModel.from_pretrained(FINBERT_MODEL).to(device).eval()
+    # yiyanghkust/finbert-pretrain ships only config.json + vocab.txt, and its
+    # config.json has no "model_type" key (nor is there a tokenizer_config.json).
+    # The Auto* classes therefore cannot infer the architecture: AutoConfig
+    # raises, AutoTokenizer falls back to a generic tokenizers backend that has
+    # no vocab format to load and reports a misleading "you need sentencepiece"
+    # error, and AutoModel raises "Unrecognized model". FinBERT is a plain BERT
+    # WordPiece encoder, so name the concrete classes - this is exactly what the
+    # Auto* classes would have resolved to had model_type been present, and it
+    # reproduces the cached training embeddings bit-for-bit.
+    from transformers import BertModel, BertTokenizer
+    tok = BertTokenizer.from_pretrained(FINBERT_MODEL)
+    model = BertModel.from_pretrained(FINBERT_MODEL).to(device).eval()
     return tok, model
 
 
