@@ -75,9 +75,9 @@ def predict_company(years_items: list[dict], text_chunks: list[str] | None = Non
     attn = model.last_attn[0].numpy() if model.last_attn is not None else None
 
     thr = tuned_threshold()
-    if prob >= max(thr * 2, 0.75):
-        category = "High risk"
-    elif prob >= thr:
+    if prob >= thr:
+        category = "High risk"       # above the validation-tuned alarm threshold
+    elif prob >= 0.5 * thr:
         category = "Elevated risk"
     else:
         category = "Low risk"

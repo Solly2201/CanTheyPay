@@ -10,9 +10,12 @@ Ablations:
 
 Usage: python -m src.run_experiments
 """
+import argparse
 import json
 import sys
 from pathlib import Path
+
+import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from src.config import EXPERIMENTS_DIR, SEED, set_seed
@@ -37,6 +40,13 @@ PRETTY = {
 
 
 def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--seeds", type=int, default=5,
+                    help="number of seeds per neural model; test scores are "
+                         "the mean predicted probability across seeds "
+                         "(seed ensemble), with per-seed PR-AUC spread reported")
+    args = ap.parse_args()
+    seeds = [SEED + i for i in range(args.seeds)]
     set_seed(SEED)
     results = {}
 
@@ -63,16 +73,38 @@ def main():
         ("financial_only", 1, "financial_only_y1"),
         ("crossmodal", 1, "crossmodal_y1"),
     ]
+    from sklearn.metrics import average_precision_score
     for model_name, n_years, key in neural_runs:
-        print(f"\n--- {key} (n_years={n_years}) ---")
+        print(f"\n--- {key} (n_years={n_years}, {len(seeds)} seeds) ---")
         tr = train_ds if n_years == 3 else BankruptcyDataset("train", n_years=1)
         va = val_ds if n_years == 3 else BankruptcyDataset("validation", n_years=1)
         te = test_ds if n_years == 3 else BankruptcyDataset("test", n_years=1)
-        model = train_model(model_name, tr, va, n_years=n_years, seed=SEED)
-        s_va, s_te = predict(model, va), predict(model, te)
+        sv, st, per_seed, models = [], [], [], []
+        for seed in seeds:
+            model = train_model(model_name, tr, va, n_years=n_years, seed=seed,
+                                verbose=False)
+            s_va, s_te = predict(model, va), predict(model, te)
+            sv.append(s_va)
+            st.append(s_te)
+            models.append(model)
+            per_seed.append(float(average_precision_score(y_te, s_te)))
+            print(f"  seed {seed}: test PR-AUC {per_seed[-1]:.4f}")
+        # keep the checkpoint of the best-validation seed for the demo/explain
+        best_i = int(np.argmax([average_precision_score(y_va, s) for s in sv]))
+        import torch
+        from src.config import MODELS_DIR, D_MODEL
+        torch.save({"state_dict": models[best_i].state_dict(),
+                    "model": model_name, "n_years": n_years,
+                    "n_features": tr.n_features, "d_model": D_MODEL},
+                   MODELS_DIR / f"{model_name}_y{n_years}.pt")
+        s_va, s_te = np.mean(sv, axis=0), np.mean(st, axis=0)
         results[key] = evaluate_scores(y_va, s_va, y_te, s_te)
-        print(f"{key}: test PR-AUC {results[key]['test']['pr_auc']:.4f} "
-              f"ROC-AUC {results[key]['test']['roc_auc']:.4f}")
+        results[key]["per_seed_test_pr_auc"] = {
+            "mean": round(float(np.mean(per_seed)), 4),
+            "std": round(float(np.std(per_seed)), 4), "values": per_seed}
+        print(f"{key}: ensemble test PR-AUC {results[key]['test']['pr_auc']:.4f} "
+              f"ROC-AUC {results[key]['test']['roc_auc']:.4f} "
+              f"(per-seed {np.mean(per_seed):.4f}+/-{np.std(per_seed):.4f})")
 
     # Also an MLP on flattened single-year financials (classic FNN baseline).
     print("\n--- mlp_financial (flat MLP baseline) ---")
@@ -96,7 +128,9 @@ def write_markdown(results):
     rows = []
     for key, res in results.items():
         t = res["test"]
-        rows.append((PRETTY.get(key, key), t["roc_auc"], t["pr_auc"],
+        spread = res.get("per_seed_test_pr_auc")
+        spread_s = (f"{spread['mean']:.3f}±{spread['std']:.3f}" if spread else "—")
+        rows.append((PRETTY.get(key, key), t["roc_auc"], t["pr_auc"], spread_s,
                      t["precision"], t["recall"], t["f1"], t["confusion_matrix"]))
     rows.sort(key=lambda r: -r[2])
     lines = [
@@ -104,15 +138,18 @@ def write_markdown(results):
         "",
         "Chronological company-disjoint splits: train 2001-2014 (12.8% positive), "
         "val 2015, test 2016-2018 (**2.6% positive**). Decision threshold tuned "
-        "on validation F1; test touched once per model. Sorted by test PR-AUC "
-        "(the primary metric under this imbalance).",
+        "on validation F1; test touched once per model. Neural models are "
+        "5-seed probability ensembles; the per-seed column shows single-run "
+        "PR-AUC mean±std. Sorted by test PR-AUC (the primary metric under this "
+        "imbalance).",
         "",
-        "| Model | ROC-AUC | PR-AUC | Precision | Recall | F1 | TN/FP/FN/TP |",
-        "|---|---|---|---|---|---|---|",
+        "| Model | ROC-AUC | PR-AUC | per-seed PR-AUC | Precision | Recall | F1 | TN/FP/FN/TP |",
+        "|---|---|---|---|---|---|---|---|",
     ]
-    for name, roc, pr, p, r, f1, cm in rows:
-        lines.append(f"| {name} | {roc:.4f} | {pr:.4f} | {p:.4f} | {r:.4f} | "
-                     f"{f1:.4f} | {cm['tn']}/{cm['fp']}/{cm['fn']}/{cm['tp']} |")
+    for name, roc, pr, spread_s, p, r, f1, cm in rows:
+        lines.append(f"| {name} | {roc:.4f} | {pr:.4f} | {spread_s} | {p:.4f} | "
+                     f"{r:.4f} | {f1:.4f} | "
+                     f"{cm['tn']}/{cm['fp']}/{cm['fn']}/{cm['tp']} |")
     (EXPERIMENTS_DIR / "results.md").write_text("\n".join(lines) + "\n")
     print("Saved experiments/results.md")
 
