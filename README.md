@@ -118,8 +118,11 @@ with only 27 validation positives, so multi-seed reporting is mandatory here).
    PR-AUC) and for the neural models (A 0.234 → D 0.267 at 3 years;
    0.295 → 0.340 at 1 year). Text *alone* is weak (0.141) — disclosures
    complement ratios, they don't replace them.
-2. **Cross-attention beats concatenation** at equal capacity (D 0.267 vs
-   C 0.247), supporting the core hypothesis of the project.
+2. **Cross-attention outperforms concatenation directionally** at equal
+   capacity (D 0.267 vs C 0.247 ensemble; per-seed means 0.218±0.031 vs
+   0.211±0.022). The direction is consistent with the project's core
+   hypothesis, but the effect is small relative to seed variance and was not
+   statistically established — see `docs/AUDIT.md` and `docs/DEFENSE.md`.
 3. **The proposed cross-modal model is competitive with — but not
    demonstrably better than — the strongest classical baseline.** The
    single-year ensemble edges XGBoost+FinBERT numerically (0.340 vs 0.331),
