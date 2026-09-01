@@ -1,0 +1,29 @@
+{
+  "train": {
+    "companies": 3142,
+    "bankrupt": 403,
+    "positive_rate": 0.1283,
+    "companies_with_text": 2103,
+    "text_chunks": 9303,
+    "fyear_min": 2001,
+    "fyear_max": 2014
+  },
+  "validation": {
+    "companies": 233,
+    "bankrupt": 27,
+    "positive_rate": 0.1159,
+    "companies_with_text": 147,
+    "text_chunks": 690,
+    "fyear_min": 2015,
+    "fyear_max": 2015
+  },
+  "test": {
+    "companies": 2815,
+    "bankrupt": 72,
+    "positive_rate": 0.0256,
+    "companies_with_text": 1895,
+    "text_chunks": 7428,
+    "fyear_min": 2016,
+    "fyear_max": 2018
+  }
+}

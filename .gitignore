@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.venv/
+data/raw/
+data/processed/*.npz
+data/processed/*.parquet
+data/cache/
+*.pt
+!experiments/**
+.streamlit/
