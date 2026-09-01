@@ -1,0 +1,62 @@
+Loading datasets ...
+
+=== Classical baselines ===
+logreg_financial: test PR-AUC 0.1688 ROC-AUC 0.8398
+xgboost_financial: test PR-AUC 0.2577 ROC-AUC 0.8930
+xgboost_fin_text: test PR-AUC 0.3313 ROC-AUC 0.9033
+logreg_text: test PR-AUC 0.1270 ROC-AUC 0.7368
+
+=== Neural models ===
+
+--- financial_only (n_years=3, 5 seeds) ---
+  seed 42: test PR-AUC 0.1702
+  seed 43: test PR-AUC 0.1541
+  seed 44: test PR-AUC 0.2557
+  seed 45: test PR-AUC 0.2104
+  seed 46: test PR-AUC 0.1416
+financial_only: ensemble test PR-AUC 0.2339 ROC-AUC 0.8814 (per-seed 0.1864+/-0.0417)
+
+--- text_only (n_years=3, 5 seeds) ---
+  seed 42: test PR-AUC 0.1229
+  seed 43: test PR-AUC 0.1196
+  seed 44: test PR-AUC 0.1412
+  seed 45: test PR-AUC 0.1497
+  seed 46: test PR-AUC 0.1267
+text_only: ensemble test PR-AUC 0.1409 ROC-AUC 0.7738 (per-seed 0.1320+/-0.0115)
+
+--- concat (n_years=3, 5 seeds) ---
+  seed 42: test PR-AUC 0.2426
+  seed 43: test PR-AUC 0.2243
+  seed 44: test PR-AUC 0.1974
+  seed 45: test PR-AUC 0.2115
+  seed 46: test PR-AUC 0.1793
+concat: ensemble test PR-AUC 0.2467 ROC-AUC 0.8845 (per-seed 0.2110+/-0.0218)
+
+--- crossmodal (n_years=3, 5 seeds) ---
+  seed 42: test PR-AUC 0.2068
+  seed 43: test PR-AUC 0.2604
+  seed 44: test PR-AUC 0.2444
+  seed 45: test PR-AUC 0.2031
+  seed 46: test PR-AUC 0.1751
+crossmodal: ensemble test PR-AUC 0.2671 ROC-AUC 0.8856 (per-seed 0.2180+/-0.0306)
+
+--- financial_only_y1 (n_years=1, 5 seeds) ---
+  seed 42: test PR-AUC 0.1820
+  seed 43: test PR-AUC 0.2613
+  seed 44: test PR-AUC 0.2798
+  seed 45: test PR-AUC 0.2446
+  seed 46: test PR-AUC 0.2752
+financial_only_y1: ensemble test PR-AUC 0.2953 ROC-AUC 0.9073 (per-seed 0.2486+/-0.0355)
+
+--- crossmodal_y1 (n_years=1, 5 seeds) ---
+  seed 42: test PR-AUC 0.1941
+  seed 43: test PR-AUC 0.3606
+  seed 44: test PR-AUC 0.2903
+  seed 45: test PR-AUC 0.2464
+  seed 46: test PR-AUC 0.2672
+crossmodal_y1: ensemble test PR-AUC 0.3395 ROC-AUC 0.9145 (per-seed 0.2717+/-0.0547)
+
+--- mlp_financial (flat MLP baseline) ---
+
+Saved C:\Users\Solly\Downloads\DL\CanTheyPay\experiments\results.json
+Saved experiments/results.md

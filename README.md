@@ -91,7 +91,56 @@ are fit on the training split only.
 
 Metrics: ROC-AUC, **PR-AUC (primary)**, precision, recall, F1, confusion matrix.
 Accuracy is reported but never used for selection (2.6% positive test rate makes
-it meaningless). Results: [`experiments/results.md`](experiments/results.md).
+it meaningless). Full table: [`experiments/results.md`](experiments/results.md).
+
+## Results (test split, 2016–2018, 72 positives / 2,815 companies)
+
+Neural models are 5-seed probability ensembles (single-seed variance is large
+with only 27 validation positives, so multi-seed reporting is mandatory here).
+
+| Model | ROC-AUC | PR-AUC | Recall | F1 |
+|---|---|---|---|---|
+| **Cross-modal, single year (E/D)** | **0.914** | **0.340** | 0.542 | 0.331 |
+| XGBoost financial + FinBERT emb. | 0.903 | 0.331 | 0.500 | 0.295 |
+| Financial encoder, single year (E) | 0.907 | 0.295 | 0.528 | 0.347 |
+| MLP / FNN (financial) | 0.897 | 0.281 | 0.347 | 0.347 |
+| Cross-modal attention, 3 yr (D) | 0.886 | 0.267 | 0.417 | 0.294 |
+| XGBoost (financial only) | 0.893 | 0.258 | 0.542 | 0.262 |
+| Concatenation fusion (C) | 0.885 | 0.247 | 0.500 | 0.250 |
+| Financial encoder only, 3 yr (A) | 0.881 | 0.234 | 0.417 | 0.305 |
+| Logistic Regression (financial) | 0.840 | 0.169 | 0.583 | 0.239 |
+| Text only, FinBERT + attention (B) | 0.774 | 0.141 | 0.361 | 0.192 |
+| Logistic Regression (FinBERT emb.) | 0.737 | 0.127 | 0.306 | 0.186 |
+
+**Findings (each ablation isolates one design choice):**
+
+1. **Text adds real signal on top of financials** — for XGBoost (0.258 → 0.331
+   PR-AUC) and for the neural models (A 0.234 → D 0.267 at 3 years;
+   0.295 → 0.340 at 1 year). Text *alone* is weak (0.141) — disclosures
+   complement ratios, they don't replace them.
+2. **Cross-attention beats concatenation** at equal capacity (D 0.267 vs
+   C 0.247), supporting the core hypothesis of the project.
+3. **The proposed cross-modal model is the only one to edge out the strongest
+   classical baseline** (XGBoost + FinBERT embeddings), and only in its
+   single-year configuration (0.340 vs 0.331) — an honest, narrow win, not a
+   blowout. The gap to XGBoost-financial-only (0.258) is more decisive.
+4. **Surprise: 1-year input beats 3-year history** (financial 0.295 vs 0.234;
+   cross-modal 0.340 vs 0.267). The most recent fiscal year dominates; older
+   years appear to add noise under this event-label design — consistent with
+   Riyanto et al. (2026), where non-sequential models beat sequence models on
+   this dataset family. We report this instead of hiding it; it is exactly what
+   ablation E was designed to detect.
+5. XGBoost gain importance concentrates on most-recent-year features
+   (`t_mv_tl`, `t_leverage`, `t_ebit_ta`), independently corroborating (4).
+
+**Explainability outputs** (`python -m src.explain`): permutation importance for
+the cross-modal model (top signals: log market value, leverage, log total
+assets, ROA — classic Altman lineage), XGBoost gain importance, and per-company
+cross-attention maps. The attention diagnostics show the model reading chunks
+about internal-control material weaknesses, liquidity shortfalls, refinancing
+risk, and goodwill impairments in high-risk companies — see
+`experiments/explain_attention_examples.md`. We label these **model
+diagnostics**, not causal explanations.
 
 ## Demo
 

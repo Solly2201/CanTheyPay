@@ -150,7 +150,8 @@ def write_markdown(results):
         lines.append(f"| {name} | {roc:.4f} | {pr:.4f} | {spread_s} | {p:.4f} | "
                      f"{r:.4f} | {f1:.4f} | "
                      f"{cm['tn']}/{cm['fp']}/{cm['fn']}/{cm['tp']} |")
-    (EXPERIMENTS_DIR / "results.md").write_text("\n".join(lines) + "\n")
+    (EXPERIMENTS_DIR / "results.md").write_text("\n".join(lines) + "\n",
+                                                encoding="utf-8")
     print("Saved experiments/results.md")
 
 
