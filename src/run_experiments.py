@@ -29,7 +29,7 @@ PRETTY = {
     "xgboost_financial": "XGBoost (financial)",
     "xgboost_fin_text": "XGBoost (financial + FinBERT emb.)",
     "logreg_text": "Logistic Regression (FinBERT emb.)",
-    "mlp_financial": "MLP / FNN (financial, 1 yr)",
+    "mlp_financial": "MLP / FNN (financial, 3 yr flattened)",
     "financial_only": "A: Financial encoder only (3 yr)",
     "financial_only_y1": "E: Financial encoder, single year",
     "text_only": "B: Text only (FinBERT + attention)",

@@ -103,7 +103,7 @@ with only 27 validation positives, so multi-seed reporting is mandatory here).
 | **Cross-modal, single year (E/D)** | **0.914** | **0.340** | 0.542 | 0.331 |
 | XGBoost financial + FinBERT emb. | 0.903 | 0.331 | 0.500 | 0.295 |
 | Financial encoder, single year (E) | 0.907 | 0.295 | 0.528 | 0.347 |
-| MLP / FNN (financial) | 0.897 | 0.281 | 0.347 | 0.347 |
+| MLP / FNN (financial, 3 yr flattened) | 0.897 | 0.281 | 0.347 | 0.347 |
 | Cross-modal attention, 3 yr (D) | 0.886 | 0.267 | 0.417 | 0.294 |
 | XGBoost (financial only) | 0.893 | 0.258 | 0.542 | 0.262 |
 | Concatenation fusion (C) | 0.885 | 0.247 | 0.500 | 0.250 |
@@ -129,7 +129,20 @@ with only 27 validation positives, so multi-seed reporting is mandatory here).
    years appear to add noise under this event-label design — consistent with
    Riyanto et al. (2026), where non-sequential models beat sequence models on
    this dataset family. We report this instead of hiding it; it is exactly what
-   ablation E was designed to detect.
+   ablation E was designed to detect. (Disclosure: the single-year token still
+   carries year-over-year growth *features* computed from t−1 values, so it
+   means "no explicit temporal sequence", not "zero information from earlier
+   years".)
+5. **Leakage caveat (from the pre-release audit,
+   [`docs/AUDIT.md`](docs/AUDIT.md)):** ~12% of bankrupt test companies with
+   text have year-t 10-Ks that were evidently filed *after* the Chapter
+   petition and mention it as fact — leakage inherent to the anonymized source
+   dataset. Masking those companies' text lowers text-using models by
+   ~0.02–0.03 PR-AUC (e.g. XGB+text 0.331 → 0.308; best-seed cross-modal-1yr
+   0.361 → 0.327) but **does not change any qualitative conclusion** — text
+   still adds signal over financial-only models. Reported tables keep the
+   unmasked evaluation for comparability with the dataset's published
+   benchmarks.
 5. XGBoost gain importance concentrates on most-recent-year features
    (`t_mv_tl`, `t_leverage`, `t_ebit_ta`), independently corroborating (4).
 

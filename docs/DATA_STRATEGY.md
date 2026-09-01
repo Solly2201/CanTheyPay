@@ -135,7 +135,7 @@ literature-backed choice (Mundkar & Khadse 2026; Xiao & Liu 2026).
 | Same company in train and test | Verified impossible: splits are company-disjoint. |
 | Random row splits mixing time | Not used; chronological split shipped and kept. |
 | Future financial info in features | Features are years t−2…t only; label is t+1 event. |
-| Post-bankruptcy filings as text | Text comes from the 10-K of fiscal year t, filed ~2–3 months after year-end, before the t+1 filing event in the normal case. Residual risk: a 10-K filed *after* a very early-in-t+1 bankruptcy petition could contain post-petition language ("going concern"/Chapter 11 mentions). We treat going-concern language as legitimate signal (it precedes the event) but document this as a residual risk we cannot fully audit because the dataset is anonymized. |
+| Post-bankruptcy filings as text | Text comes from the 10-K of fiscal year t, filed ~2–3 months after year-end, before the t+1 filing event in the normal case. **Audited and quantified** (see `docs/AUDIT.md` §F): ~6–12% of positive companies' text contains post-petition language, inflating text-model PR-AUC by ~0.02–0.03; masking it does not change any qualitative conclusion. Inherent to the anonymized source; going-concern language (legitimate pre-event signal) is unaffected. |
 | Duplicate company-year records | Verified none (unique `cik` per split). |
 | Restated financials | Unknown/unauditable in an anonymized dataset — documented limitation; as-first-reported vs restated cannot be distinguished. |
 | Scaler/threshold fitted on test | All preprocessing statistics fit on train only; τ tuned on val only. |
