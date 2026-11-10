@@ -238,3 +238,12 @@ experiments/             results + diagnostics (generated)
 - **Attention ≠ explanation** — attention maps and permutation importances are
   model diagnostics, not causal explanations.
 - Not financial advice.
+
+## Team
+
+| Name | GitHub |
+| --- | --- |
+| Shreshtha Bindal | [@Solly2201](https://github.com/Solly2201) |
+| Nishi Chhajed | [@nishiiic](https://github.com/nishiiic) |
+| Aayra Charania | [@aayracharania](https://github.com/aayracharania) |
+| Krishank Ayella | [@DevilHunter695](https://github.com/DevilHunter695) |
